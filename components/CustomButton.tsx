@@ -7,7 +7,7 @@ import {
   GestureResponderEvent,
 } from "react-native";
 
-type FormData = {
+export type FormData = {
   login: string;
   password: string;
 };

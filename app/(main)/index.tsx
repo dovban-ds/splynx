@@ -21,7 +21,7 @@ import {
 export default function Main() {
   const router = useRouter();
   const { bottom } = useSafeAreaInsets();
-  const { data, error, isLoading, isFetching } = useQuery({
+  const { data, error, isLoading } = useQuery({
     queryKey: ["invoices"],
     queryFn: fetchInvoices,
   });
@@ -61,7 +61,7 @@ export default function Main() {
         ListFooterComponent={() => (
           <View style={{ paddingBottom: bottom + 5 }} />
         )}
-        refreshing={isFetching}
+        refreshing={isLoading}
         onRefresh={() => {
           queryClient.invalidateQueries({ queryKey: ["invoices"] });
         }}
