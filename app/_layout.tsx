@@ -21,6 +21,7 @@ export {
 import * as SecureStore from "expo-secure-store";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/api/queryClients";
+import { Platform, TouchableOpacity } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -62,17 +63,33 @@ function RootLayoutNav() {
               options={{
                 headerShown: true,
                 headerTitle: "Invoice Details",
-                headerTitleStyle: { fontSize: 25 },
+                headerTitleStyle: { fontSize: 25, color: "#000" },
+                headerStyle: { backgroundColor: "#fff" },
                 headerTitleAlign: "center",
                 headerLeft(props) {
+                  console.log({ props });
                   return (
-                    <FontAwesome
-                      name="toggle-left"
-                      size={30}
-                      onPress={async () => {
-                        router.back();
+                    <TouchableOpacity
+                      onPress={() => {
+                        console.log("Back button pressed!");
+                        router.push("/(main)");
                       }}
-                    />
+                      onPressIn={
+                        Platform.OS === "android"
+                          ? () => {
+                              router.push("/(main)");
+                            }
+                          : undefined
+                      }
+                      style={{ paddingHorizontal: 5 }}
+                    >
+                      <FontAwesome
+                        name="toggle-left"
+                        size={30}
+                        color={"#000"}
+                        style={{ marginLeft: 5 }}
+                      />
+                    </TouchableOpacity>
                   );
                 },
               }}
@@ -83,12 +100,11 @@ function RootLayoutNav() {
                 headerShown: true,
                 headerTitle: "Invoices",
                 headerTitleAlign: "center",
-                headerTitleStyle: { fontSize: 25 },
+                headerTitleStyle: { fontSize: 25, color: "#000" },
+                headerStyle: { backgroundColor: "#fff" },
                 headerLeft(props) {
                   return (
-                    <FontAwesome
-                      name="toggle-left"
-                      size={30}
+                    <TouchableOpacity
                       onPress={async () => {
                         await SecureStore.deleteItemAsync("auth_token");
                         await SecureStore.deleteItemAsync("refresh_token");
@@ -97,7 +113,50 @@ function RootLayoutNav() {
                         );
                         router.replace("/(login)");
                       }}
-                    />
+                      onPressIn={
+                        Platform.OS === "android"
+                          ? async () => {
+                              await SecureStore.deleteItemAsync("auth_token");
+                              await SecureStore.deleteItemAsync(
+                                "refresh_token"
+                              );
+                              await SecureStore.deleteItemAsync(
+                                "auth_token_validity"
+                              );
+                              router.replace("/(login)");
+                            }
+                          : undefined
+                      }
+                      style={{ paddingHorizontal: 5 }}
+                    >
+                      <FontAwesome
+                        name="toggle-left"
+                        size={30}
+                        style={{ padding: 10 }}
+                        onPress={async () => {
+                          await SecureStore.deleteItemAsync("auth_token");
+                          await SecureStore.deleteItemAsync("refresh_token");
+                          await SecureStore.deleteItemAsync(
+                            "auth_token_validity"
+                          );
+                          router.replace("/(login)");
+                        }}
+                        onPressIn={
+                          Platform.OS === "android"
+                            ? async () => {
+                                await SecureStore.deleteItemAsync("auth_token");
+                                await SecureStore.deleteItemAsync(
+                                  "refresh_token"
+                                );
+                                await SecureStore.deleteItemAsync(
+                                  "auth_token_validity"
+                                );
+                                router.replace("/(login)");
+                              }
+                            : undefined
+                        }
+                      />
+                    </TouchableOpacity>
                   );
                 },
               }}
