@@ -15,8 +15,8 @@ import { ErrorMessage } from "@/components/ErrorMessage";
 import { CustomButton } from "@/components/CustomButton";
 import axiosInstance from "@/api/axiosInstance";
 import * as SecureStore from "expo-secure-store";
-import { AxiosResponse } from "axios";
 import { TLoginResponse } from "@/models/apiModels";
+import { useMutation } from "@tanstack/react-query";
 
 export default function Login() {
   const {
@@ -31,31 +31,27 @@ export default function Login() {
     },
   });
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const { login: loginError, password: passwordError } = errors;
-
-  const onSubmit = async ({
-    login,
-    password,
-  }: {
-    login: string;
-    password: string;
-  }) => {
-    setIsLoading(true);
-    try {
-      const response: AxiosResponse<TLoginResponse> = await axiosInstance.post(
+  const mutation = useMutation({
+    mutationFn: async ({
+      login,
+      password,
+    }: {
+      login: string;
+      password: string;
+    }) => {
+      const response = await axiosInstance.post<TLoginResponse>(
         "/admin/auth/tokens",
         {
           auth_type: "customer",
-          login: login,
-          password: password,
+          login,
+          password,
         }
       );
-
-      const { access_token, refresh_token, access_token_expiration } =
-        response?.data;
-
+      return response.data;
+    },
+    onSuccess: async (data) => {
+      const { access_token, refresh_token, access_token_expiration } = data;
       if (access_token) {
         await SecureStore.setItemAsync("auth_token", access_token);
         await SecureStore.setItemAsync(
@@ -65,15 +61,20 @@ export default function Login() {
         await SecureStore.setItemAsync("refresh_token", refresh_token);
         router.replace("/(main)");
       }
-    } catch (error) {
+    },
+    onError: () => {
       setError("password", {
         type: "validate",
         message: "Invalid login or password provided",
       });
-    } finally {
-      setIsLoading(false);
-    }
+    },
+  });
+
+  const onSubmit = (data: { login: string; password: string }) => {
+    mutation.mutate(data);
   };
+
+  const { login: loginError, password: passwordError } = errors;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -114,14 +115,14 @@ export default function Login() {
           {(loginError || passwordError) && (
             <ErrorMessage text="Invalid login or password provided" />
           )}
-          {isLoading && <ActivityIndicator size={"large"} />}
+          {mutation.isPending && <ActivityIndicator size={"large"} />}
         </View>
 
         <View style={styles.button}>
           <CustomButton
             handleSubmit={handleSubmit}
             onSubmit={onSubmit}
-            disabled={isLoading}
+            disabled={mutation.isPending}
           />
         </View>
       </View>
@@ -130,7 +131,7 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: "#fff" },
   container: {
     flex: 1,
     paddingHorizontal: 30,
