@@ -1,119 +1,62 @@
-import React, { useMemo } from "react";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Link, Stack } from "expo-router";
-import { Controller, useForm } from "react-hook-form";
-import { CustomInput } from "@/components/CustomInput";
-import { ErrorMessage } from "@/components/ErrorMessage";
-import { CustomButton } from "@/components/CustomButton";
-import axiosInstance from "@/api/axiosInstance";
+import {
+  Redirect,
+  Slot,
+  Stack,
+  useRootNavigationState,
+  useRouter,
+} from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 
-export default function Login() {
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      login: "",
-      password: "",
-    },
-  });
+import { ActivityIndicator, Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { getNewAccessToken } from "@/utils/getNewToken";
+export const unstable_settings = {
+  initialRouteName: "(test)",
+};
 
-  const { login: loginError, password: passwordError } = errors;
+SplashScreen.preventAutoHideAsync();
 
-  const onSubmit = async ({
-    login,
-    password,
-  }: {
-    login: string;
-    password: string;
-  }) => {
-    try {
-      const response = await axiosInstance.post("/admin/auth/tokens", {
-        auth_type: "customer",
-        login: login,
-        password: password,
-      });
+export default function RootLayout() {
+  const router = useRouter();
+  const navigation = useRootNavigationState();
+  const [isReady, setIsReady] = useState(false);
+  const [initialRouteName, setInitialRouteName] = useState<
+    "/(main)" | "/(login)" | null
+  >(null);
 
-      if (response.data && response.data.token) {
-        await SecureStore.setItemAsync("auth_token", response.data.token);
-      }
-    } catch (error) {
-      // any error handling
+  const asyncCheck = async () => {
+    const token = await SecureStore.getItemAsync("auth_token");
+    const tokenValidity = await SecureStore.getItemAsync("auth_token_validity");
+    if (token && tokenValidity && Date.now() <= parseInt(tokenValidity)) {
+      setInitialRouteName("/(main)");
+    } else {
+      await getNewAccessToken({ router });
     }
+    setIsReady(true);
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.loginTitle}>Welcome!</Text>
-        <View style={styles.viewController}>
-          <Controller
-            control={control}
-            rules={{
-              required: true,
-            }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <CustomInput
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                title={"Login"}
-              />
-            )}
-            name={"login"}
-          />
+  useEffect(() => {
+    if (!navigation?.key) return;
+    asyncCheck();
+    SplashScreen.hideAsync();
+  }, [navigation?.key]);
 
-          <Controller
-            control={control}
-            rules={{
-              required: true,
-            }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <CustomInput
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                title={"Password"}
-              />
-            )}
-            name={"password"}
-          />
-          {(loginError || passwordError) && (
-            <ErrorMessage text="Invalid login or password provided" />
-          )}
-        </View>
+  if (!isReady || !initialRouteName) {
+    return (
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
 
-        <View style={styles.button}>
-          <CustomButton handleSubmit={handleSubmit} onSubmit={onSubmit} />
-        </View>
-      </View>
-    </SafeAreaView>
-  );
+  return <Redirect href={initialRouteName} />;
 }
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  container: {
-    flex: 1,
-    paddingHorizontal: 30,
-    justifyContent: "space-between",
-  },
-  loginTitle: {
-    color: "#000",
-    fontSize: 36,
-    marginTop: 35,
-    marginBottom: 40,
-  },
-  viewController: {
-    flexGrow: 1,
-    alignItems: "center",
-    // justifyContent: "center",
-    gap: 50,
-  },
-  button: {
-    marginBottom: 20,
-  },
-});
