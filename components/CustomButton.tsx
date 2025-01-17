@@ -18,17 +18,20 @@ type CustomButtonProps = {
   ) => (event: GestureResponderEvent) => void;
   onSubmit: SubmitHandler<FormData>;
   text?: string;
+  disabled?: boolean;
 };
 
 export const CustomButton = ({
   handleSubmit,
   onSubmit,
   text = "Submit",
+  disabled = false,
 }: CustomButtonProps) => {
+  const handler = handleSubmit(onSubmit);
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        onPress={handleSubmit(onSubmit)}
+        onPress={disabled ? undefined : handler}
         style={styles.buttonContainer}
       >
         <Text style={styles.buttonText}>{text}</Text>
